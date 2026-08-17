@@ -1381,8 +1381,9 @@ public:
 
     // [WTS] Per-text-token attention-prior dwell counts: mAttentionPriorCounters[i] is the number
     // of audio frames whose argmax cross-attention landed on encoder text token i. Surfaced as the
-    // "attention_prior_counters" additional output (see createResult) so Riva Magpie word-timestamps
-    // can turn the audio-frame -> text-token alignment into per-word start/end times.
+    // "attention_prior_counters" additional output on every streaming createResult (and the final
+    // response) so Riva Magpie can turn the running audio-frame -> text-token alignment into
+    // per-chunk word timestamps.
     [[nodiscard]] std::vector<SizeType32> const& getAttentionPriorCounters() const
     {
         return mAttentionPriorCounters;
