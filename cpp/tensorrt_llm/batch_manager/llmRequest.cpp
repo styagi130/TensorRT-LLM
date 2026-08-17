@@ -219,6 +219,21 @@ std::optional<executor::Result> LlmRequest::createResult(bool useFastLogits, int
         }
     }
 
+    // [WTS] Per-text-token attention-prior dwell counts (INT32, shape [encoderOutputLen]).
+    // mAttentionPriorCounters is incremented every generation step in setAttentionPriorIdx.
+    // Attach the running vector on every streaming createResult (not only isFinished) so Riva
+    // Magpie can emit per-chunk word timestamps. Empty until the first prior update; the final
+    // response still carries the complete alignment.
+    auto const& attnPriorCounters = getAttentionPriorCounters();
+    if (!attnPriorCounters.empty())
+    {
+        auto counterTensor = executor::Tensor::cpu(executor::DataType::kINT32,
+            executor::Shape{static_cast<executor::Shape::DimType64>(attnPriorCounters.size())});
+        std::copy(attnPriorCounters.begin(), attnPriorCounters.end(),
+            static_cast<runtime::SizeType32*>(counterTensor.getData()));
+        result.additionalOutputs.emplace_back("attention_prior_counters", std::move(counterTensor));
+    }
+
     // Update position of last sent response
     setMaxSentTokenLen(maxNbTokens);
     return result;
